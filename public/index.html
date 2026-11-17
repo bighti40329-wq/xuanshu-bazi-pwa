@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#231F20" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="玄樞八字" />
+  <title>玄樞八字｜AI 命理排盤</title>
+
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --paper-bg: #FBF8F1;
+      --paper-card: #FFFDF8;
+      --ink-main: #231F20;
+      --vermilion: #B83B2A;
+      --gold: #C59B27;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--paper-bg);
+      color: var(--ink-main);
+      padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    @media (min-width: 1024px) {
+      body {
+        padding-bottom: 2rem;
+      }
+    }
+
+    .font-serif-tc {
+      font-family: 'Noto Serif TC', serif;
+    }
+
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+
+    .wx-木 { color: #236B4B; background-color: #E8F4EE; border-color: #9ED0B9; }
+    .wx-火 { color: #B83B2A; background-color: #FCECE9; border-color: #E8ACA3; }
+    .wx-土 { color: #8F6516; background-color: #FBF3E0; border-color: #E3C98B; }
+    .wx-金 { color: #7C631E; background-color: #F6F1E3; border-color: #D6C38B; }
+    .wx-水 { color: #1E4E79; background-color: #E8F1F8; border-color: #9CC0DF; }
+
+    .bar-木 { background-color: #2E7D5B; }
+    .bar-火 { background-color: #C83E2B; }
+    .bar-土 { background-color: #C59B27; }
+    .bar-金 { background-color: #9A7B2C; }
+    .bar-水 { background-color: #2B5B84; }
+
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen selection:bg-amber-200">
+
+  <header class="sticky top-0 z-30 bg-[#231F20] text-[#FBF8F1] border-b border-[#C59B27]/40 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <span class="w-8 h-8 rounded-lg bg-[#B83B2A] border border-[#D4AF37] flex items-center justify-center font-serif-tc font-bold text-[#FFFDF8] text-base shadow">
+          樞
+        </span>
+        <div>
+          <h1 class="font-serif-tc font-bold text-base sm:text-lg tracking-wider leading-tight">
+            玄樞八字
+          </h1>
+          <p class="text-[11px] text-amber-200/80 hidden sm:block">子平曆法引擎 × Gemini AI 問事排盤</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btnInstallPwa" type="button" class="hidden px-2.5 py-1.5 rounded-lg bg-[#C59B27] text-[#231F20] text-xs font-bold hover:bg-amber-400 transition">
+          ＋ 安裝 App
+        </button>
+        <span id="serverKeyBadge" class="text-[11px] px-2 py-1 rounded-full bg-white/10 text-amber-200 border border-white/15">
+          連線檢查中...
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div id="toast" role="status" aria-live="polite" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 hidden max-w-[92vw] px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium transition-opacity"></div>
+
+  <main class="max-w-6xl mx-auto px-3 sm:px-5 pt-4 lg:pt-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+      <!-- 左欄（手機分頁 1：生辰輸入與問事） -->
+      <section id="panel-input" class="lg:col-span-5 space-y-4">
+        <div class="bg-[#FFFDF8] rounded-2xl border border-stone-200/90 shadow-sm p-4 sm:p-5">
+          <div class="flex items-center justify-between border-b border-stone-200/80 pb-3 mb-4">
+            <h2 class="font-serif-tc font-bold text-lg text-[#231F20] flex items-center gap-2">
+              <span class="w-1.5 h-5 bg-[#B83B2A] rounded-full"></span>
+              生辰八字與問事設定
+            </h2>
+            <button id="btnFillDemo" type="button" class="text-xs px-2.5 py-1.5 rounded-lg border border-stone-300 text-stone-600 hover:bg-stone-100">
+              填入範例
+            </button>
+          </div>
+
+          <form id="baziForm" class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-stone-600 mb-1.5">命主性別（定大運順逆）</label>
+                <div class="grid grid-cols-2 rounded-xl bg-stone-100 p-1 border border-stone-200">
+                  <button type="button" data-gender="male" class="gender-btn min-h-[38px] rounded-lg text-sm font-bold bg-[#231F20] text-white transition">乾造（男）</button>
+                  <button type="button" data-gender="female" class="gender-btn min-h-[38px] rounded-lg text-sm font-medium text-stone-600 transition">坤造（女）</button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-stone-600 mb-1.5">出生曆法</label>
+                <div class="grid grid-cols-2 rounded-xl bg-stone-100 p-1 border border-stone-200">
+                  <button type="button" data-cal="solar" class="cal-btn min-h-[38px] rounded-lg text-sm font-bold bg-[#B83B2A] text-white transition">國曆（陽）</button>
+                  <button type="button" data-cal="lunar" class="cal-btn min-h-[38px] rounded-lg text-sm font-medium text-stone-600 transition">農曆（陰）</button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-stone-600 mb-1.5">出生年月日</label>
+              <div class="grid grid-cols-3 gap-2">
+                <select id="birthYear" aria-label="出生年" class="min-h-[44px] px-2.5 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]"></select>
+                <select id="birthMonth" aria-label="出生月" class="min-h-[44px] px-2.5 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]"></select>
+                <select id="birthDay" aria-label="出生日" class="min-h-[44px] px-2.5 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]"></select>
+              </div>
+              <div id="lunarLeapWrap" class="hidden mt-2 flex items-center gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
+                <input id="isLeapMonth" type="checkbox" class="w-4 h-4 accent-[#B83B2A]" />
+                <label for="isLeapMonth" id="lunarLeapLabel">該年有閏月，若為閏月出生請勾選</label>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="birthShichen" class="text-xs font-bold text-stone-600">出生時辰</label>
+                <label class="inline-flex items-center gap-1.5 text-xs font-medium text-[#B83B2A] cursor-pointer">
+                  <input id="unknownTime" type="checkbox" class="w-4 h-4 accent-[#B83B2A]" />
+                  <span>時辰不詳（三柱推命）</span>
+                </label>
+              </div>
+
+              <div id="timeInputGroup" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <select id="birthShichen" class="min-h-[44px] px-3 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]">
+                  <option value="0">子時 (23:00–00:59)</option>
+                  <option value="2">丑時 (01:00–02:59)</option>
+                  <option value="4">寅時 (03:00–04:59)</option>
+                  <option value="6">卯時 (05:00–06:59)</option>
+                  <option value="8">辰時 (07:00–08:59)</option>
+                  <option value="10">巳時 (09:00–10:59)</option>
+                  <option value="12" selected>午時 (11:00–12:59)</option>
+                  <option value="14">未時 (13:00–14:59)</option>
+                  <option value="16">申時 (15:00–16:59)</option>
+                  <option value="18">酉時 (17:00–18:59)</option>
+                  <option value="20">戌時 (19:00–20:59)</option>
+                  <option value="22">亥時 (21:00–22:59)</option>
+                </select>
+
+                <div class="flex items-center gap-1.5">
+                  <input id="exactHour" type="number" min="0" max="23" value="12" aria-label="小時" class="w-full min-h-[44px] px-2.5 rounded-xl border border-stone-300 bg-white text-center" />
+                  <span class="text-stone-400 font-bold">:</span>
+                  <input id="exactMinute" type="number" min="0" max="59" value="0" aria-label="分鐘" class="w-full min-h-[44px] px-2.5 rounded-xl border border-stone-300 bg-white text-center" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="birthLocation" class="text-xs font-bold text-stone-600">出生地點（經度校正）</label>
+                <label class="inline-flex items-center gap-1.5 text-xs text-stone-600 cursor-pointer">
+                  <input id="useTrueSolarTime" type="checkbox" checked class="w-4 h-4 accent-[#B83B2A]" />
+                  <span>套用真太陽時</span>
+                </label>
+              </div>
+              <select id="birthLocation" class="w-full min-h-[44px] px-3 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]"></select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-stone-600 mb-1.5">想請教的問事方向</label>
+              <div id="topicGrid" class="grid grid-cols-3 gap-2">
+                <button type="button" data-topic="愛情姻緣" class="topic-btn min-h-[44px] px-2 py-2 rounded-xl border border-[#B83B2A] bg-[#FCECE9] text-[#B83B2A] text-xs sm:text-sm font-bold transition">💕 愛情姻緣</button>
+                <button type="button" data-topic="學業考運" class="topic-btn min-h-[44px] px-2 py-2 rounded-xl border border-stone-200 bg-white text-stone-700 text-xs sm:text-sm font-medium transition">🎓 學業考運</button>
+                <button type="button" data-topic="事業職場" class="topic-btn min-h-[44px] px-2 py-2 rounded-xl border border-stone-200 bg-white text-stone-700 text-xs sm:text-sm font-medium transition">💼 事業職場</button>
+                <button type="button" data-topic="財運理財" class="topic-btn min-h-[44px] px-2 py-2 rounded-xl border border-stone-200 bg-white text-stone-700 text-xs sm:text-sm font-medium transition">💰 財運理財</button>
+                <button type="button" data-topic="健康身心" class="topic-btn min-h-[44px] px-2 py-2 rounded-xl border border-stone-200 bg-white text-stone-700 text-xs sm:text-sm font-medium transition">🌿 健康身心</button>
+                <button type="button" data-topic="整體流年" class="topic-btn min-h-[44px] px-2 py-2 rounded-xl border border-stone-200 bg-white text-stone-700 text-xs sm:text-sm font-medium transition">🧭 整體流年</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="userQuestion" class="text-xs font-bold text-stone-600">具體問題補充（選填）</label>
+                <span id="charCount" class="text-[11px] text-stone-400">0 / 200</span>
+              </div>
+              <textarea id="userQuestion" rows="2" maxlength="200" placeholder="例如：今年適合轉職嗎？或目前感情相處該注意什麼？" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A] resize-none"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+              <button id="btnChartOnly" type="button" class="min-h-[48px] px-3 rounded-xl border border-stone-300 bg-stone-100 text-stone-800 text-sm font-bold hover:bg-stone-200 transition">
+                僅排八字盤
+              </button>
+              <button id="btnAnalyze" type="submit" class="sm:col-span-2 min-h-[48px] px-4 rounded-xl bg-[#B83B2A] text-white text-sm sm:text-base font-bold shadow hover:bg-[#9E2F20] active:scale-[0.99] transition flex items-center justify-center gap-2">
+                <span>✦ 排盤並啟動 AI 解讀</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- 右欄（手機分頁 2：八字命盤與 AI 解析結果） -->
+      <section id="panel-result" class="hidden lg:block lg:col-span-7 space-y-4">
+        <div id="emptyState" class="bg-[#FFFDF8] rounded-2xl border border-dashed border-stone-300 p-8 text-center space-y-3">
+          <div class="w-14 h-14 mx-auto rounded-full bg-amber-50 border border-[#C59B27]/50 flex items-center justify-center font-serif-tc text-2xl text-[#B83B2A] font-bold">
+            命
+          </div>
+          <h3 class="font-serif-tc font-bold text-lg text-stone-800">尚未排出八字命盤</h3>
+          <p class="text-sm text-stone-500 max-w-md mx-auto leading-relaxed">
+            請填寫出生年月日與問事主題。系統會先以子平曆法引擎精確換算節氣與四柱干支，再由 Gemini AI 為您剖析運勢脈絡。
+          </p>
+        </div>
+
+        <div id="chartContainer" class="hidden space-y-4">
+          <div class="bg-[#FFFDF8] rounded-2xl border border-stone-200 shadow-sm p-4 sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 pb-3 mb-4">
+              <div>
+                <span class="text-xs font-bold text-[#B83B2A] tracking-wider">子平八字命盤</span>
+                <h3 id="resDateHeader" class="font-serif-tc font-bold text-base sm:text-lg text-stone-900 mt-0.5"></h3>
+                <p id="resMetaSub" class="text-xs text-stone-500 mt-0.5"></p>
+              </div>
+              <button id="btnSaveHistory" type="button" class="min-h-[38px] px-3 py-1.5 rounded-xl border border-[#C59B27] bg-amber-50 text-amber-900 text-xs font-bold hover:bg-amber-100">
+                儲存此命盤
+              </button>
+            </div>
+
+            <div id="pillarsGrid" class="grid grid-cols-4 gap-2 text-center mb-4"></div>
+
+            <div class="bg-stone-50 rounded-xl p-3.5 border border-stone-200/80 mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-stone-700">本命五行能量分佈（含藏干權重）</span>
+                <span id="dayMasterBadge" class="text-xs font-bold px-2 py-0.5 rounded-md bg-white border border-stone-200"></span>
+              </div>
+              <div id="wuxingBar" class="h-3 w-full rounded-full overflow-hidden flex bg-stone-200 mb-2"></div>
+              <div id="wuxingLegend" class="grid grid-cols-5 gap-1 text-center text-xs"></div>
+            </div>
+
+            <div class="space-y-2">
+              <p id="jieQiInfo" class="text-xs text-stone-500"></p>
+              <div>
+                <span class="text-xs font-bold text-stone-700 block mb-1.5">十年大運排程（左右滑動檢視）</span>
+                <div id="daYunRow" class="flex gap-2 overflow-x-auto pb-1"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="aiReadingCard" class="hidden bg-[#FFFDF8] rounded-2xl border border-[#C59B27]/60 shadow-sm p-4 sm:p-5 space-y-4">
+            <div class="flex items-start justify-between gap-2 border-b border-stone-200 pb-3">
+              <div>
+                <span id="aiTopicTag" class="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#B83B2A] text-white mb-1"></span>
+                <h3 id="aiHeadline" class="font-serif-tc font-bold text-base sm:text-lg text-stone-900"></h3>
+              </div>
+              <button id="btnCopyReading" type="button" class="shrink-0 min-h-[36px] px-2.5 py-1 rounded-lg border border-stone-300 text-xs text-stone-600 hover:bg-stone-100">
+                複製解析
+              </button>
+            </div>
+
+            <div class="flex flex-wrap gap-2 text-xs">
+              <span id="tagStrength" class="px-2.5 py-1 rounded-lg bg-stone-100 font-bold text-stone-800"></span>
+              <span id="tagFavorable" class="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 font-bold text-emerald-800"></span>
+              <span id="tagUnfavorable" class="px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 font-bold text-rose-800"></span>
+            </div>
+
+            <div class="space-y-3 text-sm leading-relaxed text-stone-700">
+              <div class="p-3.5 rounded-xl bg-stone-50 border border-stone-200/70">
+                <h4 class="font-bold text-stone-900 mb-1">【本命格局與日主特質】</h4>
+                <p id="aiCorePersonality"></p>
+              </div>
+              <div class="p-3.5 rounded-xl bg-amber-50/50 border border-amber-200/70">
+                <h4 class="font-bold text-[#B83B2A] mb-1">【問事深度剖析】</h4>
+                <p id="aiTopicAnalysis"></p>
+              </div>
+              <div class="p-3.5 rounded-xl bg-stone-50 border border-stone-200/70">
+                <h4 class="font-bold text-stone-900 mb-1">【大運與流年互動趨勢】</h4>
+                <p id="aiAnnualOutlook"></p>
+              </div>
+              <div>
+                <h4 class="font-bold text-stone-900 mb-1.5">【開運與行動建議】</h4>
+                <ul id="aiAdviceList" class="space-y-1.5 list-disc list-inside text-stone-700"></ul>
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-stone-200 space-y-2.5">
+              <label for="followUpInput" class="block text-xs font-bold text-stone-700">針對本命盤繼續追問</label>
+              <div id="followUpHistory" class="space-y-2"></div>
+              <div class="flex gap-2">
+                <input id="followUpInput" type="text" maxlength="200" placeholder="輸入想進一步了解的細節..." class="flex-1 min-h-[44px] px-3 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]" />
+                <button id="btnFollowUp" type="button" class="shrink-0 min-h-[44px] px-4 rounded-xl bg-[#231F20] text-white text-sm font-bold hover:bg-stone-800">
+                  追問
+                </button>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-stone-400 text-center pt-1">
+              ※ 命理推演結合子平曆法與生成式 AI 解讀，僅供自我探索與生活規劃參考。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 手機分頁 3（桌面置於左欄下方）：Gemini 免費額度金鑰設定與本機歷史紀錄 -->
+      <section id="panel-settings" class="hidden lg:block lg:col-span-5 space-y-4">
+        <div class="bg-[#FFFDF8] rounded-2xl border border-stone-200 shadow-sm p-4 sm:p-5 space-y-3">
+          <h3 class="font-serif-tc font-bold text-base text-stone-900 flex items-center gap-2">
+            <span class="w-1.5 h-4 bg-[#C59B27] rounded-full"></span>
+            Gemini API 免費額度設定
+          </h3>
+          <p class="text-xs text-stone-500 leading-relaxed">
+            若部署者已在 Render 設定伺服器金鑰，您可直接免填使用；若無，可貼上您自己的 Google AI Studio 免費額度 Key（僅暫存於本機 <code class="bg-stone-100 px-1 rounded">sessionStorage</code>，關閉分頁即自動清除）。
+          </p>
+          <div class="flex gap-2">
+            <input id="customApiKey" type="password" autocomplete="off" placeholder="貼上 AIzaSy... 開頭的金鑰" class="flex-1 min-h-[44px] px-3 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]" />
+            <button id="btnSaveKey" type="button" class="shrink-0 min-h-[44px] px-3.5 rounded-xl bg-stone-800 text-white text-xs font-bold">
+              暫存金鑰
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-[#FFFDF8] rounded-2xl border border-stone-200 shadow-sm p-4 sm:p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-serif-tc font-bold text-base text-stone-900">本機儲存命盤（30日有效）</h3>
+            <button id="btnClearHistory" type="button" class="text-xs text-rose-700 hover:underline">清除全部紀錄</button>
+          </div>
+          <p class="text-[11px] text-amber-800 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200/80">
+            隱私提醒：資料僅存於目前瀏覽器，若使用公用電腦請勿儲存或於使用後清除。
+          </p>
+          <div id="historyList" class="space-y-2 text-xs text-stone-500">尚無儲存紀錄</div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 手機專屬底部導覽列 -->
+  <nav aria-label="手機版主導覽" class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF8]/95 backdrop-blur border-t border-stone-200 safe-bottom">
+    <div class="grid grid-cols-3 h-14">
+      <button type="button" data-tab="input" class="mobile-tab-btn flex flex-col items-center justify-center gap-0.5 text-[#B83B2A] font-bold">
+        <span class="text-base">✎</span>
+        <span class="text-[11px]">生辰問事</span>
+      </button>
+      <button type="button" data-tab="result" class="mobile-tab-btn flex flex-col items-center justify-center gap-0.5 text-stone-500 font-medium">
+        <span class="text-base">☯</span>
+        <span class="text-[11px]">命盤解析</span>
+      </button>
+      <button type="button" data-tab="settings" class="mobile-tab-btn flex flex-col items-center justify-center gap-0.5 text-stone-500 font-medium">
+        <span class="text-base">⚙</span>
+        <span class="text-[11px]">金鑰與紀錄</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    const LOCATIONS = [
+      { name: '台灣 · 台北市', lat: 25.0330, lng: 121.5654 },
+      { name: '台灣 · 新北市', lat: 25.0120, lng: 121.4657 },
+      { name: '台灣 · 基隆市', lat: 25.1276, lng: 121.7392 },
+      { name: '台灣 · 桃園市', lat: 24.9936, lng: 121.3010 },
+      { name: '台灣 · 新竹市', lat: 24.8138, lng: 120.9675 },
+      { name: '台灣 · 新竹縣', lat: 24.8387, lng: 121.0177 },
+      { name: '台灣 · 苗栗縣', lat: 24.5602, lng: 120.8214 },
+      { name: '台灣 · 台中市', lat: 24.1477, lng: 120.6736 },
+      { name: '台灣 · 彰化縣', lat: 24.0518, lng: 120.5161 },
+      { name: '台灣 · 南投縣', lat: 23.9609, lng: 120.9719 },
+      { name: '台灣 · 雲林縣', lat: 23.7092, lng: 120.4313 },
+      { name: '台灣 · 嘉義市', lat: 23.4801, lng: 120.4491 },
+      { name: '台灣 · 嘉義縣', lat: 23.4518, lng: 120.2555 },
+      { name: '台灣 · 台南市', lat: 22.9999, lng: 120.2269 },
+      { name: '台灣 · 高雄市', lat: 22.6273, lng: 120.3014 },
+      { name: '台灣 · 屏東縣', lat: 22.5519, lng: 120.5487 },
+      { name: '台灣 · 宜蘭縣', lat: 24.7021, lng: 121.7377 },
+      { name: '台灣 · 花蓮縣', lat: 23.9872, lng: 121.6016 },
+      { name: '台灣 · 台東縣', lat: 22.7972, lng: 121.0714 },
+      { name: '台灣 · 澎湖縣', lat: 23.5711, lng: 119.5793 },
+      { name: '台灣 · 金門縣', lat: 24.4493, lng: 118.3767 },
+      { name: '台灣 · 連江縣', lat: 26.1505, lng: 119.9499 },
+      { name: '香港 / 澳門', lat: 22.3193, lng: 114.1694 },
+      { name: '日本 · 東京', lat: 35.6762, lng: 139.6503 },
+      { name: '新加坡 / 吉隆坡', lat: 1.3521, lng: 103.8198 }
+    ];
+
+    const STORAGE_KEY = 'xuanshu_bazi_records_v1';
+    const STORAGE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+    const state = {
+      gender: 'male',
+      calendarType: 'solar',
+      topic: '愛情姻緣',
+      lunarMetaCache: {},
+      currentChart: null,
+      currentReading: null,
+      deferredInstallPrompt: null
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function showToast(msg, type = 'info') {
+      const el = $('toast');
+      el.textContent = msg;
+      el.className = 'fixed top-16 left-1/2 -translate-x-1/2 z-50 max-w-[92vw] px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium';
+      if (type === 'error') {
+        el.classList.add('bg-rose-800', 'text-white');
+      } else if (type === 'success') {
+        el.classList.add('bg-emerald-800', 'text-white');
+      } else {
+        el.classList.add('bg-[#231F20]', 'text-amber-100');
+      }
+      el.classList.remove('hidden');
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => el.classList.add('hidden'), 3500);
+    }
+
+    function switchMobileTab(tabName) {
+      const isDesktop = window.innerWidth >= 1024;
+      document.querySelectorAll('.mobile-tab-btn').forEach((btn) => {
+        const active = btn.dataset.tab === tabName;
+        btn.classList.toggle('text-[#B83B2A]', active);
+        btn.classList.toggle('font-bold', active);
+        btn.classList.toggle('text-stone-500', !active);
+        btn.classList.toggle('font-medium', !active);
+      });
+
+      if (isDesktop) {
+        $('panel-input').classList.remove('hidden');
+        $('panel-result').classList.remove('hidden');
+        $('panel-settings').classList.remove('hidden');
+        return;
+      }
+
+      $('panel-input').classList.toggle('hidden', tabName !== 'input');
+      $('panel-result').classList.toggle('hidden', tabName !== 'result');
+      $('panel-settings').classList.toggle('hidden', tabName !== 'settings');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function initSelectors() {
+      const currentYear = new Date().getFullYear();
+      const yearSelect = $('birthYear');
+      for (let y = currentYear; y >= 1920; y--) {
+        yearSelect.add(new Option(`${y} 年`, String(y)));
+      }
+      yearSelect.value = '1991';
+
+      const locSelect = $('birthLocation');
+      LOCATIONS.forEach((loc, idx) => {
+        locSelect.add(new Option(`${loc.name} (${loc.lng.toFixed(1)}°E)`, String(idx)));
+      });
+      locSelect.value = '11';
+
+      updateMonthAndDayOptions();
+    }
+
+    async function updateMonthAndDayOptions() {
+      const year = Number($('birthYear').value);
+      const monthSelect = $('birthMonth');
+      const daySelect = $('birthDay');
+      const prevMonth = Number(monthSelect.value) || 6;
+      const prevDay = Number(daySelect.value) || 15;
+
+      if (state.calendarType === 'solar') {
+        $('lunarLeapWrap').classList.add('hidden');
+        $('isLeapMonth').checked = false;
+
+        monthSelect.innerHTML = '';
+        for (let m = 1; m <= 12; m++) {
+          monthSelect.add(new Option(`${m} 月`, String(m)));
+        }
+        monthSelect.value = String(Math.min(prevMonth, 12));
+
+        const maxDay = new Date(year, Number(monthSelect.value), 0).getDate();
+        daySelect.innerHTML = '';
+        for (let d = 1; d <= maxDay; d++) {
+          daySelect.add(new Option(`${d} 日`, String(d)));
+        }
+        daySelect.value = String(Math.min(prevDay, maxDay));
+      } else {
+        let meta = state.lunarMetaCache[year];
+        if (!meta) {
+          try {
+            const resp = await fetch(`/api/lunar-meta?year=${year}`);
+            if (resp.ok) {
+              meta = await resp.json();
+              state.lunarMetaCache[year] = meta;
+            }
+          } catch (_) {}
+        }
+
+        monthSelect.innerHTML = '';
+        for (let m = 1; m <= 12; m++) {
+          monthSelect.add(new Option(`農曆 ${m} 月`, String(m)));
+        }
+        monthSelect.value = String(Math.min(prevMonth, 12));
+
+        if (meta && meta.leapMonth > 0) {
+          $('lunarLeapWrap').classList.remove('hidden');
+          $('lunarLeapLabel').textContent = `${year} 農曆年有「閏${meta.leapMonth}月」，若為閏月出生請勾選`;
+        } else {
+          $('lunarLeapWrap').classList.add('hidden');
+          $('isLeapMonth').checked = false;
+        }
+
+        const selectedM = Number(monthSelect.value);
+        const isLeap = $('isLeapMonth').checked;
+        let maxLunarDay = 30;
+        if (meta && Array.isArray(meta.months)) {
+          const found = meta.months.find((item) => item.month === selectedM && item.isLeap === isLeap);
+          if (found) maxLunarDay = found.days;
+        }
+
+        daySelect.innerHTML = '';
+        for (let d = 1; d <= maxLunarDay; d++) {
+          daySelect.add(new Option(`${d} 日`, String(d)));
+        }
+        daySelect.value = String(Math.min(prevDay, maxLunarDay));
+      }
+    }
+
+    function collectFormPayload() {
+      const locIdx = Number($('birthLocation').value) || 0;
+      return {
+        gender: state.gender,
+        calendarType: state.calendarType,
+        year: Number($('birthYear').value),
+        month: Number($('birthMonth').value),
+        day: Number($('birthDay').value),
+        isLeapMonth: $('isLeapMonth').checked,
+        unknownTime: $('unknownTime').checked,
+        hour: Number($('exactHour').value) || 0,
+        minute: Number($('exactMinute').value) || 0,
+        location: LOCATIONS[locIdx],
+        useTrueSolarTime: $('useTrueSolarTime').checked,
+        topic: state.topic,
+        question: $('userQuestion').value.trim()
+      };
+    }
+
+    function renderChart(chart) {
+      state.currentChart = chart;
+      $('emptyState').classList.add('hidden');
+      $('chartContainer').classList.remove('hidden');
+
+      $('resDateHeader').textContent = `${chart.solarDateStr} ｜ ${chart.lunarDateStr}`;
+      const solarNote = chart.trueSolarInfo
+        ? `真太陽時 ${chart.trueSolarInfo.adjustedTime}（經度與均時差校正 ${chart.trueSolarInfo.offsetMinutes > 0 ? '+' : ''}${chart.trueSolarInfo.offsetMinutes} 分）`
+        : chart.unknownTime ? '時辰不詳（三柱推命模式）' : '使用標準鐘錶時間';
+      $('resMetaSub').textContent = `生肖：${chart.zodiac} ｜ ${solarNote}`;
+
+      const pillarList = [chart.pillars.year, chart.pillars.month, chart.pillars.day, chart.pillars.time];
+      const grid = $('pillarsGrid');
+      grid.innerHTML = '';
+      pillarList.forEach((p) => {
+        const card = document.createElement('div');
+        card.className = 'rounded-xl border border-stone-200 bg-white p-2.5 flex flex-col items-center shadow-2xs';
+        const ganClass = p.ganWuxing ? `wx-${p.ganWuxing}` : 'bg-stone-100 text-stone-400 border-stone-200';
+        const zhiClass = p.zhiWuxing ? `wx-${p.zhiWuxing}` : 'bg-stone-100 text-stone-400 border-stone-200';
+        const hideText = Array.isArray(p.hideGan) && p.hideGan.length ? `藏：${p.hideGan.join('')}` : '—';
+
+        card.innerHTML = `
+          <span class="text-[11px] font-bold text-stone-500 mb-1">${escapeHtml(p.label)}</span>
+          <span class="text-[11px] text-stone-600 mb-1.5 truncate max-w-full">${escapeHtml(p.shiShenGan)}</span>
+          <div class="w-11 h-11 rounded-xl border flex items-center justify-center font-serif-tc font-black text-xl mb-1.5 ${ganClass}">
+            ${escapeHtml(p.gan)}
+          </div>
+          <div class="w-11 h-11 rounded-xl border flex items-center justify-center font-serif-tc font-black text-xl mb-1.5 ${zhiClass}">
+            ${escapeHtml(p.zhi)}
+          </div>
+          <span class="text-[10px] text-stone-500">${escapeHtml(hideText)}</span>
+          <span class="text-[10px] text-amber-800/80 mt-0.5">${escapeHtml(p.naYin)}</span>
+        `;
+        grid.appendChild(card);
+      });
+
+      $('dayMasterBadge').textContent = `日主：${chart.dayMaster.gan}${chart.dayMaster.element}`;
+      const elements = ['木', '火', '土', '金', '水'];
+      const bar = $('wuxingBar');
+      const legend = $('wuxingLegend');
+      bar.innerHTML = '';
+      legend.innerHTML = '';
+
+      elements.forEach((el) => {
+        const pct = chart.fiveElements[el] || 0;
+        const seg = document.createElement('div');
+        seg.className = `bar-${el} h-full transition-all duration-500`;
+        seg.style.width = `${pct}%`;
+        bar.appendChild(seg);
+
+        const item = document.createElement('div');
+        item.className = `rounded-lg py-1 border wx-${el} font-bold`;
+        item.textContent = `${el} ${pct}%`;
+        legend.appendChild(item);
+      });
+
+      $('jieQiInfo').textContent = `節氣交接參考：前節氣 ${chart.jieQi.prev} ｜ 後節氣 ${chart.jieQi.next}`;
+
+      const daYunRow = $('daYunRow');
+      daYunRow.innerHTML = '';
+      chart.daYun.forEach((dy) => {
+        const box = document.createElement('div');
+        box.className = 'shrink-0 px-3 py-2 rounded-xl border border-stone-200 bg-white text-center min-w-[74px]';
+        box.innerHTML = `
+          <div class="text-[10px] text-stone-400">${dy.startYear}年</div>
+          <div class="font-serif-tc font-bold text-sm text-stone-900 my-0.5">${escapeHtml(dy.ganZhi)}</div>
+          <div class="text-[10px] text-[#B83B2A] font-medium">${dy.startAge}歲起</div>
+        `;
+        daYunRow.appendChild(box);
+      });
+    }
+
+    function renderReading(reading, topic) {
+      state.currentReading = reading;
+      $('aiReadingCard').classList.remove('hidden');
+      $('aiTopicTag').textContent = `問事主題：${topic}`;
+      $('aiHeadline').textContent = reading.headline;
+      $('tagStrength').textContent = `格局判定：${reading.dayMasterStrength}`;
+      $('tagFavorable').textContent = `喜用五行：${(reading.favorableElements || []).join('、')}`;
+      $('tagUnfavorable').textContent = `留意五行：${(reading.unfavorableElements || []).join('、')}`;
+      $('aiCorePersonality').textContent = reading.corePersonality;
+      $('aiTopicAnalysis').textContent = reading.topicAnalysis;
+      $('aiAnnualOutlook').textContent = reading.annualOutlook;
+
+      const list = $('aiAdviceList');
+      list.innerHTML = '';
+      (reading.actionableAdvice || []).forEach((tip) => {
+        const li = document.createElement('li');
+        li.textContent = tip;
+        list.appendChild(li);
+      });
+
+      $('followUpHistory').innerHTML = '';
+    }
+
+    function getAuthHeaders() {
+      const headers = { 'Content-Type': 'application/json' };
+      const customKey = sessionStorage.getItem('user_gemini_api_key');
+      if (customKey) headers['x-user-api-key'] = customKey;
+      return headers;
+    }
+
+    async function handleChartOnly() {
+      const btn = $('btnChartOnly');
+      btn.disabled = true;
+      btn.textContent = '排盤中...';
+      try {
+        const payload = collectFormPayload();
+        const resp = await fetch('/api/bazi-chart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || '排盤失敗');
+
+        renderChart(data.chart);
+        $('aiReadingCard').classList.add('hidden');
+        switchMobileTab('result');
+        showToast('八字排盤完成（未消耗 AI 額度）', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '僅排八字盤';
+      }
+    }
+
+    async function handleAnalyzeSubmit(e) {
+      e.preventDefault();
+      const btn = $('btnAnalyze');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ 正在推演八字與 AI 解析...</span>';
+
+      try {
+        const payload = collectFormPayload();
+        const resp = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+
+        if (data.chart) {
+          renderChart(data.chart);
+          switchMobileTab('result');
+        }
+        if (!resp.ok) {
+          throw new Error(data.error || 'AI 解析失敗');
+        }
+
+        renderReading(data.reading, payload.topic);
+        showToast('三柱／四柱八字與 AI 解析已完成！', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>✦ 排盤並啟動 AI 解讀</span>';
+      }
+    }
+
+    async function handleFollowUp() {
+      const input = $('followUpInput');
+      const q = input.value.trim();
+      if (!q || !state.currentChart) return;
+
+      const btn = $('btnFollowUp');
+      btn.disabled = true;
+      btn.textContent = '推演中...';
+
+      const c = state.currentChart;
+      const summary = `四柱：${c.pillars.year.gan}${c.pillars.year.zhi}年、${c.pillars.month.gan}${c.pillars.month.zhi}月、${c.pillars.day.gan}${c.pillars.day.zhi}日、${c.unknownTime ? '時辰不詳' : c.pillars.time.gan + c.pillars.time.zhi + '時'}；日主${c.dayMaster.gan}${c.dayMaster.element}`;
+
+      try {
+        const resp = await fetch('/api/followup', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            chartSummary: summary,
+            topic: state.topic,
+            followUpQuestion: q
+          })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || '追問失敗');
+
+        const box = document.createElement('div');
+        box.className = 'p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs space-y-1';
+        box.innerHTML = `
+          <div class="font-bold text-[#B83B2A]">問：${escapeHtml(q)}</div>
+          <div class="text-stone-700 leading-relaxed">${escapeHtml(data.answer)}</div>
+        `;
+        $('followUpHistory').appendChild(box);
+        input.value = '';
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '追問';
+      }
+    }
+
+    function loadHistory() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const now = Date.now();
+        const valid = Array.isArray(raw)
+          ? raw.filter((item) => item && item.savedAt && now - item.savedAt < STORAGE_TTL_MS)
+          : [];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(valid));
+        renderHistoryList(valid);
+        return valid;
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function renderHistoryList(list) {
+      const container = $('historyList');
+      if (!list.length) {
+        container.textContent = '尚無儲存紀錄';
+        return;
+      }
+      container.innerHTML = '';
+      list.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 p-2.5 rounded-xl bg-stone-50 border border-stone-200';
+        const info = document.createElement('div');
+        info.innerHTML = `
+          <div class="font-bold text-stone-800">${escapeHtml(item.chart.solarDateStr)}（${escapeHtml(item.topic)}）</div>
+          <div class="text-[11px] text-stone-500">日主 ${escapeHtml(item.chart.dayMaster.gan)}${escapeHtml(item.chart.dayMaster.element)}</div>
+        `;
+        const loadBtn = document.createElement('button');
+        loadBtn.type = 'button';
+        loadBtn.className = 'px-2.5 py-1.5 rounded-lg bg-white border border-stone-300 text-stone-700 font-bold hover:bg-stone-100';
+        loadBtn.textContent = '載入';
+        loadBtn.addEventListener('click', () => {
+          renderChart(item.chart);
+          if (item.reading) renderReading(item.reading, item.topic);
+          switchMobileTab('result');
+          showToast('已載入本機儲存命盤');
+        });
+        row.appendChild(info);
+        row.appendChild(loadBtn);
+        container.appendChild(row);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      initSelectors();
+      loadHistory();
+
+      try {
+        const statusResp = await fetch('/api/status');
+        const status = await statusResp.json();
+        $('serverKeyBadge').textContent = status.hasServerKey ? '✓ 伺服器金鑰就緒' : '需自填免費金鑰';
+      } catch (_) {
+        $('serverKeyBadge').textContent = '離線模式';
+      }
+
+      document.querySelectorAll('.gender-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.gender = btn.dataset.gender;
+          document.querySelectorAll('.gender-btn').forEach((b) => {
+            const active = b.dataset.gender === state.gender;
+            b.className = `gender-btn min-h-[38px] rounded-lg text-sm transition ${active ? 'font-bold bg-[#231F20] text-white' : 'font-medium text-stone-600'}`;
+          });
+        });
+      });
+
+      document.querySelectorAll('.cal-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.calendarType = btn.dataset.cal;
+          document.querySelectorAll('.cal-btn').forEach((b) => {
+            const active = b.dataset.cal === state.calendarType;
+            b.className = `cal-btn min-h-[38px] rounded-lg text-sm transition ${active ? 'font-bold bg-[#B83B2A] text-white' : 'font-medium text-stone-600'}`;
+          });
+          updateMonthAndDayOptions();
+        });
+      });
+
+      document.querySelectorAll('.topic-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.topic = btn.dataset.topic;
+          document.querySelectorAll('.topic-btn').forEach((b) => {
+            const active = b.dataset.topic === state.topic;
+            b.className = `topic-btn min-h-[44px] px-2 py-2 rounded-xl border text-xs sm:text-sm transition ${active ? 'border-[#B83B2A] bg-[#FCECE9] text-[#B83B2A] font-bold' : 'border-stone-200 bg-white text-stone-700 font-medium'}`;
+          });
+        });
+      });
+
+      $('birthYear').addEventListener('change', updateMonthAndDayOptions);
+      $('birthMonth').addEventListener('change', updateMonthAndDayOptions);
+      $('isLeapMonth').addEventListener('change', updateMonthAndDayOptions);
+
+      $('unknownTime').addEventListener('change', (e) => {
+        const disabled = e.target.checked;
+        $('timeInputGroup').classList.toggle('opacity-40', disabled);
+        $('birthShichen').disabled = disabled;
+        $('exactHour').disabled = disabled;
+        $('exactMinute').disabled = disabled;
+      });
+
+      $('birthShichen').addEventListener('change', (e) => {
+        $('exactHour').value = e.target.value;
+        $('exactMinute').value = '0';
+      });
+
+      $('userQuestion').addEventListener('input', (e) => {
+        $('charCount').textContent = `${e.target.value.length} / 200`;
+      });
+
+      $('btnFillDemo').addEventListener('click', () => {
+        state.calendarType = 'lunar';
+        document.querySelector('[data-cal="lunar"]').click();
+        $('birthYear').value = '1991';
+        updateMonthAndDayOptions().then(() => {
+          $('birthMonth').value = '4';
+          $('birthDay').value = '25';
+        });
+        $('unknownTime').checked = false;
+        $('unknownTime').dispatchEvent(new Event('change'));
+        $('birthShichen').value = '6';
+        $('exactHour').value = '6';
+        $('exactMinute').value = '0';
+        $('birthLocation').value = '11';
+        $('userQuestion').value = '想了解近期在專業技術領域發展與轉職時機的建議。';
+        $('charCount').textContent = `${$('userQuestion').value.length} / 200`;
+        showToast('已填入範例生辰，可直接點選排盤');
+      });
+
+      $('btnChartOnly').addEventListener('click', handleChartOnly);
+      $('baziForm').addEventListener('submit', handleAnalyzeSubmit);
+      $('btnFollowUp').addEventListener('click', handleFollowUp);
+
+      $('btnSaveKey').addEventListener('click', () => {
+        const val = $('customApiKey').value.trim();
+        if (!val) {
+          sessionStorage.removeItem('user_gemini_api_key');
+          showToast('已清除自訂 API Key');
+          return;
+        }
+        sessionStorage.setItem('user_gemini_api_key', val);
+        $('customApiKey').value = '';
+        showToast('已暫存您的免費額度金鑰（關閉分頁即清除）', 'success');
+      });
+
+      $('btnSaveHistory').addEventListener('click', () => {
+        if (!state.currentChart) return;
+        const list = loadHistory();
+        list.unshift({
+          savedAt: Date.now(),
+          topic: state.topic,
+          chart: state.currentChart,
+          reading: state.currentReading
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, 10)));
+        renderHistoryList(list.slice(0, 10));
+        showToast('已儲存至本機瀏覽器紀錄', 'success');
+      });
+
+      $('btnClearHistory').addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY);
+        renderHistoryList([]);
+        showToast('已清除全部本機命盤紀錄');
+      });
+
+      $('btnCopyReading').addEventListener('click', async () => {
+        if (!state.currentReading || !state.currentChart) return;
+        const r = state.currentReading;
+        const text = `【玄樞八字解析】${state.currentChart.solarDateStr}
+核心格局：${r.headline}
+喜用五行：${r.favorableElements.join('、')}
+
+${r.topicAnalysis}
+
+流年趨勢：${r.annualOutlook}`;
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast('已複製解析內容至剪貼簿', 'success');
+        } catch (_) {
+          showToast('複製失敗，請手動選取文字', 'error');
+        }
+      });
+
+      document.querySelectorAll('.mobile-tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => switchMobileTab(btn.dataset.tab));
+      });
+      window.addEventListener('resize', () => {
+        if (window.innerWidth >= 1024) switchMobileTab('input');
+      });
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        state.deferredInstallPrompt = e;
+        $('btnInstallPwa').classList.remove('hidden');
+      });
+
+      $('btnInstallPwa').addEventListener('click', async () => {
+        if (!state.deferredInstallPrompt) return;
+        state.deferredInstallPrompt.prompt();
+        await state.deferredInstallPrompt.userChoice;
+        state.deferredInstallPrompt = null;
+        $('btnInstallPwa').classList.add('hidden');
+      });
+    });
+  </script>
+</body>
+</html>

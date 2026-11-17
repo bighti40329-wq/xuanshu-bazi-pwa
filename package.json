@@ -1,0 +1,16 @@
+{
+  "name": "xuanshu-bazi-pwa",
+  "version": "1.0.0",
+  "description": "玄樞八字｜確定性曆法排盤與 Gemini AI 命理問事 PWA",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "lunar-javascript": "^1.6.13"
+  }
+}
