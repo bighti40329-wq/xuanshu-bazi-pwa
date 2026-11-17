@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#231F20" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="玄樞八字" />
+  <title>玄樞八字｜AI 命理排盤</title>
+
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --paper-bg: #FBF8F1;
+      --paper-card: #FFFDF8;
+      --ink-main: #231F20;
+      --vermilion: #B83B2A;
+      --gold: #C59B27;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--paper-bg);
+      color: var(--ink-main);
+      padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    @media (min-width: 1024px) {
+      body {
+        padding-bottom: 2rem;
+      }
+    }
+
+    .font-serif-tc {
+      font-family: 'Noto Serif TC', serif;
+    }
+
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+
+    .wx-木 { color: #236B4B; background-color: #E8F4EE; border-color: #9ED0B9; }
+    .wx-火 { color: #B83B2A; background-color: #FCECE9; border-color: #E8ACA3; }
+    .wx-土 { color: #8F6516; background-color: #FBF3E0; border-color: #E3C98B; }
+    .wx-金 { color: #7C631E; background-color: #F6F1E3; border-color: #D6C38B; }
+    .wx-水 { color: #1E4E79; background-color: #E8F1F8; border-color: #9CC0DF; }
+
+    .bar-木 { background-color: #2E7D5B; }
+    .bar-火 { background-color: #C83E2B; }
+    .bar-土 { background-color: #C59B27; }
+    .bar-金 { background-color: #9A7B2C; }
+    .bar-水 { background-color: #2B5B84; }
+
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen selection:bg-amber-200">
+
+  <!-- 頂部導覽列 -->
+  <header class="sticky top-0 z-30 bg-[#231F20] text-[#FBF8F1] border-b border-[#C59B27]/40 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <span class="w-8 h-8 rounded-lg bg-[#B83B2A] border border-[#D4AF37] flex items-center justify-center font-serif-tc font-bold text-[#FFFDF8] text-base shadow">
+          樞
+        </span>
+        <div>
+          <h1 class="font-serif-tc font-bold text-base sm:text-lg tracking-wider leading-tight">
+            玄樞八字
+          </h1>
+          <p class="text-[11px] text-amber-200/80 hidden sm:block">子平曆法引擎 × Gemini AI 問事排盤</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btnToggleGuide" type="button" class="px-2.5 py-1.5 rounded-lg bg-white/10 text-amber-200 border border-amber-300/30 text-xs font-bold hover:bg-white/20 transition">
+          📖 使用導引
+        </button>
+        <button id="btnInstallPwa" type="button" class="hidden px-2.5 py-1.5 rounded-lg bg-[#C59B27] text-[#231F20] text-xs font-bold hover:bg-amber-400 transition">
+          ＋ 安裝 App
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div id="toast" role="status" aria-live="polite" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 hidden max-w-[92vw] px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium transition-opacity"></div>
+
+  <main class="max-w-6xl mx-auto px-3 sm:px-5 pt-4 lg:pt-5 space-y-4">
+
+    <!-- 三步驟使用導引橫幅（可隨時收合／展開） -->
+    <section id="onboardingGuide" class="bg-[#FFFDF8] rounded-2xl border border-[#C59B27]/70 shadow-sm p-4 sm:p-5 relative">
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded-md bg-[#231F20] text-[#D4AF37] text-xs font-bold">新手導引</span>
+          <h2 class="font-serif-tc font-bold text-sm sm:text-base text-stone-900">三步驟完成精準排盤與 AI 解讀</h2>
+        </div>
+        <button id="btnCloseGuide" type="button" class="text-xs text-stone-500 hover:text-stone-800 px-2 py-1 rounded-lg hover:bg-stone-100">
+          收合導引 ✕
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
+        <!-- Step 1 -->
+        <div id="guideStep1" class="rounded-xl p-3 border border-amber-200 bg-amber-50/70 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-amber-900">步驟 ① 優先設定個人 API Key</span>
+            <span id="guideStep1Badge" class="px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-900 text-[10px] font-bold">建議優先</span>
+          </div>
+          <p class="text-stone-600 leading-relaxed">
+            建議優先貼上您自己的 Google AI Studio 免費金鑰，可減少內建共用額度消耗並降低尖峰排隊機率。
+          </p>
+          <button id="btnQuickFocusKey" type="button" class="text-[#B83B2A] font-bold underline hover:text-red-800">
+            前往設定個人免費 Key →
+          </button>
+        </div>
+
+        <!-- Step 2 -->
+        <div id="guideStep2" class="rounded-xl p-3 border border-stone-300 bg-stone-100/80 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-stone-800">步驟 ② 先按「暗灰色」排八字盤</span>
+            <span id="guideStep2Badge" class="px-1.5 py-0.5 rounded bg-stone-700 text-white text-[10px] font-bold">待執行</span>
+          </div>
+          <p class="text-stone-600 leading-relaxed">
+            填妥生辰後，請先點擊<strong>暗灰色按鈕「① 排八字盤」</strong>由曆法引擎排出四柱干支與五行（完全免費、不耗額度）。
+          </p>
+        </div>
+
+        <!-- Step 3 -->
+        <div id="guideStep3" class="rounded-xl p-3 border border-stone-200 bg-white space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-stone-800">步驟 ③ 解鎖「啟動 AI 深度解析」</span>
+            <span id="guideStep3Badge" class="px-1.5 py-0.5 rounded bg-stone-200 text-stone-600 text-[10px] font-bold">🔒 未解鎖</span>
+          </div>
+          <p class="text-stone-600 leading-relaxed">
+            排出八字盤後，AI 解析按鈕將自動解鎖；確認命盤無誤後再送出，避免浪費寶貴的免費 API 次數。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+      <!-- 左欄（手機分頁 1：生辰輸入與問事） -->
+      <section id="panel-input" class="lg:col-span-5 space-y-4">
+        <div class="bg-[#FFFDF8] rounded-2xl border border-stone-200/90 shadow-sm p-4 sm:p-5">
+          <div class="flex items-center justify-between border-b border-stone-200/80 pb-3 mb-4">
+            <h2 class="font-serif-tc font-bold text-lg text-[#231F20] flex items-center gap-2">
+              <span class="w-1.5 h-5 bg-[#B83B2A] rounded-full"></span>
+              生辰八字與問事設定
+            </h2>
+            <button id="btnFillDemo" type="button" class="text-xs px-2.5 py-1.5 rounded-lg border border-stone-300 text-stone-600 hover:bg-stone-100">
+              填入範例
+            </button>
+          </div>
+
+          <!-- 目前 API 額度來源狀態提示條 -->
+          <div id="apiSourceNotice" class="mb-4 p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 bg-amber-50 border-amber-200 text-amber-900">
+            <span id="apiSourceText">正在檢查 API 金鑰狀態...</span>
+            <button id="btnBannerToKey" type="button" class="shrink-0 px-2 py-1 rounded-lg bg-white border border-amber-300 font-bold text-[#B83B2A] hover:bg-amber-100">
+              設定個人 Key
+            </button>
+          </div>
+
+          <form id="baziForm" class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-stone-600 mb-1.5">命主性別（定大運順逆）</label>
+                <div class="grid grid-cols-2 rounded-xl bg-stone-100 p-1 border border-stone-200">
+                  <button type="button" data-gender="male" class="gender-btn min-h-[38px] rounded-lg text-sm font-bold bg-[#231F20] text-white transition">乾造（男）</button>
+                  <button type="button" data-gender="female" class="gender-btn min-h-[38px] rounded-lg text-sm font-medium text-stone-600 transition">坤造（女）</button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-stone-600 mb-1.5">出生曆法</label>
+                <div class="grid grid-cols-2 rounded-xl bg-stone-100 p-1 border border-stone-200">
+                  <button type="button" data-cal="solar" class="cal-btn min-h-[38px] rounded-lg text-sm font-bold bg-[#B83B2A] text-white transition">國曆（陽）</button>
+                  <button type="button" data-cal="lunar" class="cal-btn min-h-[38px] rounded-lg text-sm font-medium text-stone-600 transition">農曆（陰）</button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-stone-600 mb-1.5">出生年月日</label>
+              <div class="grid grid-cols-3 gap-2">
+                <select id="birthYear" aria-label="出生年" class="min-h-[44px] px-2.5 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]"></select>
+                <select id="birthMonth" aria-label="出生月" class="min-h-[44px] px-2.5 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]"></select>
+                <select id="birthDay" aria-label="出生日" class="min-h-[44px] px-2.5 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]"></select>
+              </div>
+              <div id="lunarLeapWrap" class="hidden mt-2 flex items-center gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
+                <input id="isLeapMonth" type="checkbox" class="w-4 h-4 accent-[#B83B2A]" />
+                <label for="isLeapMonth" id="lunarLeapLabel">該年有閏月，若為閏月出生請勾選</label>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="birthShichen" class="text-xs font-bold text-stone-600">出生時辰</label>
+                <label class="inline-flex items-center gap-1.5 text-xs font-medium text-[#B83B2A] cursor-pointer">
+                  <input id="unknownTime" type="checkbox" class="w-4 h-4 accent-[#B83B2A]" />
+                  <span>時辰不詳（三柱推命）</span>
+                </label>
+              </div>
+
+              <div id="timeInputGroup" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <select id="birthShichen" class="min-h-[44px] px-3 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]">
+                  <option value="0">子時 (23:00–00:59)</option>
+                  <option value="2">丑時 (01:00–02:59)</option>
+                  <option value="4">寅時 (03:00–04:59)</option>
+                  <option value="6">卯時 (05:00–06:59)</option>
+                  <option value="8">辰時 (07:00–08:59)</option>
+                  <option value="10">巳時 (09:00–10:59)</option>
+                  <option value="12" selected>午時 (11:00–12:59)</option>
+                  <option value="14">未時 (13:00–14:59)</option>
+                  <option value="16">申時 (15:00–16:59)</option>
+                  <option value="18">酉時 (17:00–18:59)</option>
+                  <option value="20">戌時 (19:00–20:59)</option>
+                  <option value="22">亥時 (21:00–22:59)</option>
+                </select>
+
+                <div class="flex items-center gap-1.5">
+                  <input id="exactHour" type="number" min="0" max="23" value="12" aria-label="小時" class="w-full min-h-[44px] px-2.5 rounded-xl border border-stone-300 bg-white text-center" />
+                  <span class="text-stone-400 font-bold">:</span>
+                  <input id="exactMinute" type="number" min="0" max="59" value="0" aria-label="分鐘" class="w-full min-h-[44px] px-2.5 rounded-xl border border-stone-300 bg-white text-center" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="birthLocation" class="text-xs font-bold text-stone-600">出生地點（經度校正）</label>
+                <label class="inline-flex items-center gap-1.5 text-xs text-stone-600 cursor-pointer">
+                  <input id="useTrueSolarTime" type="checkbox" checked class="w-4 h-4 accent-[#B83B2A]" />
+                  <span>套用真太陽時</span>
+                </label>
+              </div>
+              <select id="birthLocation" class="w-full min-h-[44px] px-3 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]"></select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-stone-600 mb-1.5">想請教的問事方向</label>
+              <div id="topicGrid" class="grid grid-cols-3 gap-2">
+                <button type="button" data-topic="愛情姻緣" class="topic-btn min-h-[44px] px-2 py-2 rounded-xl border border-[#B83B2A] bg-[#FCECE9] text-[#B83B2A] text-xs sm:text-sm font-bold transition">💕 愛情姻緣</button>
+                <button type="button" data-topic="學業考運" class="topic-btn min-h-[44px] px-2 py-2 rounded-xl border border-stone-200 bg-white text-stone-700 text-xs sm:text-sm font-medium transition">🎓 學業考運</button>
+                <button type="button" data-topic="事業職場" class="topic-btn min-h-[44px] px-2 py-2 rounded-xl border border-stone-200 bg-white text-stone-700 text-xs sm:text-sm font-medium transition">💼 事業職場</button>
+                <button type="button" data-topic="財運理財" class="topic-btn min-h-[44px] px-2 py-2 rounded-xl border border-stone-200 bg-white text-stone-700 text-xs sm:text-sm font-medium transition">💰 財運理財</button>
+                <button type="button" data-topic="健康身心" class="topic-btn min-h-[44px] px-2 py-2 rounded-xl border border-stone-200 bg-white text-stone-700 text-xs sm:text-sm font-medium transition">🌿 健康身心</button>
+                <button type="button" data-topic="整體流年" class="topic-btn min-h-[44px] px-2 py-2 rounded-xl border border-stone-200 bg-white text-stone-700 text-xs sm:text-sm font-medium transition">🧭 整體流年</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="userQuestion" class="text-xs font-bold text-stone-600">具體問題補充（選填）</label>
+                <span id="charCount" class="text-[11px] text-stone-400">0 / 200</span>
+              </div>
+              <textarea id="userQuestion" rows="2" maxlength="200" placeholder="例如：今年適合轉職嗎？或目前感情相處該注意什麼？" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A] resize-none"></textarea>
+            </div>
+
+            <!-- 強制順序操作區：先暗灰色排八字，再解鎖 AI 解析 -->
+            <div class="space-y-2 pt-1">
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                <button id="btnChartOnly" type="button" class="sm:col-span-5 min-h-[48px] px-3 rounded-xl bg-stone-700 hover:bg-stone-800 active:scale-[0.99] text-white text-sm font-bold shadow-sm transition flex items-center justify-center gap-1.5">
+                  <span>① 排八字盤</span>
+                </button>
+                <button id="btnAnalyze" type="submit" disabled class="sm:col-span-7 min-h-[48px] px-4 rounded-xl bg-stone-200 text-stone-400 border border-stone-300 cursor-not-allowed text-sm font-bold transition flex items-center justify-center gap-1.5">
+                  <span>🔒 ② 先排八字再解鎖 AI</span>
+                </button>
+              </div>
+              <p id="stepActionHint" class="text-[11px] text-stone-500 text-center">
+                請先點擊左側暗灰色「① 排八字盤」確認四柱干支後，右側 AI 解析按鈕即會自動解鎖。
+              </p>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- 右欄（手機分頁 2：八字命盤與 AI 解析結果） -->
+      <section id="panel-result" class="hidden lg:block lg:col-span-7 space-y-4">
+        <div id="emptyState" class="bg-[#FFFDF8] rounded-2xl border border-dashed border-stone-300 p-8 text-center space-y-3">
+          <div class="w-14 h-14 mx-auto rounded-full bg-stone-100 border border-stone-300 flex items-center justify-center font-serif-tc text-2xl text-stone-700 font-bold">
+            命
+          </div>
+          <h3 class="font-serif-tc font-bold text-lg text-stone-800">步驟 ①：請先排出八字命盤</h3>
+          <p class="text-sm text-stone-500 max-w-md mx-auto leading-relaxed">
+            在左側填寫生辰後，請先點擊暗灰色的<strong>「① 排八字盤」</strong>按鈕。系統會先免費計算出四柱干支與五行比例，確認無誤後即可啟動 AI 深度解析。
+          </p>
+        </div>
+
+        <div id="chartContainer" class="hidden space-y-4">
+          <div class="bg-[#FFFDF8] rounded-2xl border border-stone-200 shadow-sm p-4 sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 pb-3 mb-4">
+              <div>
+                <span class="text-xs font-bold text-[#B83B2A] tracking-wider">子平八字命盤（已驗證）</span>
+                <h3 id="resDateHeader" class="font-serif-tc font-bold text-base sm:text-lg text-stone-900 mt-0.5"></h3>
+                <p id="resMetaSub" class="text-xs text-stone-500 mt-0.5"></p>
+              </div>
+              <button id="btnSaveHistory" type="button" class="min-h-[38px] px-3 py-1.5 rounded-xl border border-[#C59B27] bg-amber-50 text-amber-900 text-xs font-bold hover:bg-amber-100">
+                儲存此命盤
+              </button>
+            </div>
+
+            <div id="pillarsGrid" class="grid grid-cols-4 gap-2 text-center mb-4"></div>
+
+            <div class="bg-stone-50 rounded-xl p-3.5 border border-stone-200/80 mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-stone-700">本命五行能量分佈（含藏干權重）</span>
+                <span id="dayMasterBadge" class="text-xs font-bold px-2 py-0.5 rounded-md bg-white border border-stone-200"></span>
+              </div>
+              <div id="wuxingBar" class="h-3 w-full rounded-full overflow-hidden flex bg-stone-200 mb-2"></div>
+              <div id="wuxingLegend" class="grid grid-cols-5 gap-1 text-center text-xs"></div>
+            </div>
+
+            <div class="space-y-2">
+              <p id="jieQiInfo" class="text-xs text-stone-500"></p>
+              <div>
+                <span class="text-xs font-bold text-stone-700 block mb-1.5">十年大運排程（左右滑動檢視）</span>
+                <div id="daYunRow" class="flex gap-2 overflow-x-auto pb-1"></div>
+              </div>
+            </div>
+
+            <!-- 命盤下方快捷啟動 AI 解析橫幅（方便手機端排出命盤後直接點選） -->
+            <div id="inCardAiPrompt" class="mt-4 pt-3.5 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+              <div class="text-xs text-stone-600 text-center sm:text-left">
+                <strong class="text-stone-900">命盤已排出！</strong> 確認四柱無誤後，可啟動 AI 針對「<span id="inCardTopicName" class="text-[#B83B2A] font-bold">愛情姻緣</span>」深度剖析。
+              </div>
+              <button id="btnAnalyzeFromCard" type="button" class="w-full sm:w-auto shrink-0 min-h-[42px] px-4 rounded-xl bg-[#B83B2A] hover:bg-[#9E2F20] text-white text-xs sm:text-sm font-bold shadow transition">
+                ✦ 啟動 AI 深度解析
+              </button>
+            </div>
+          </div>
+
+          <div id="aiReadingCard" class="hidden bg-[#FFFDF8] rounded-2xl border border-[#C59B27]/60 shadow-sm p-4 sm:p-5 space-y-4">
+            <div class="flex items-start justify-between gap-2 border-b border-stone-200 pb-3">
+              <div>
+                <div class="flex flex-wrap items-center gap-1.5 mb-1">
+                  <span id="aiTopicTag" class="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#B83B2A] text-white"></span>
+                  <span id="aiKeySourceTag" class="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200"></span>
+                </div>
+                <h3 id="aiHeadline" class="font-serif-tc font-bold text-base sm:text-lg text-stone-900"></h3>
+              </div>
+              <button id="btnCopyReading" type="button" class="shrink-0 min-h-[36px] px-2.5 py-1 rounded-lg border border-stone-300 text-xs text-stone-600 hover:bg-stone-100">
+                複製解析
+              </button>
+            </div>
+
+            <div class="flex flex-wrap gap-2 text-xs">
+              <span id="tagStrength" class="px-2.5 py-1 rounded-lg bg-stone-100 font-bold text-stone-800"></span>
+              <span id="tagFavorable" class="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 font-bold text-emerald-800"></span>
+              <span id="tagUnfavorable" class="px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 font-bold text-rose-800"></span>
+            </div>
+
+            <div class="space-y-3 text-sm leading-relaxed text-stone-700">
+              <div class="p-3.5 rounded-xl bg-stone-50 border border-stone-200/70">
+                <h4 class="font-bold text-stone-900 mb-1">【本命格局與日主特質】</h4>
+                <p id="aiCorePersonality"></p>
+              </div>
+              <div class="p-3.5 rounded-xl bg-amber-50/50 border border-amber-200/70">
+                <h4 class="font-bold text-[#B83B2A] mb-1">【問事深度剖析】</h4>
+                <p id="aiTopicAnalysis"></p>
+              </div>
+              <div class="p-3.5 rounded-xl bg-stone-50 border border-stone-200/70">
+                <h4 class="font-bold text-stone-900 mb-1">【大運與流年互動趨勢】</h4>
+                <p id="aiAnnualOutlook"></p>
+              </div>
+              <div>
+                <h4 class="font-bold text-stone-900 mb-1.5">【開運與行動建議】</h4>
+                <ul id="aiAdviceList" class="space-y-1.5 list-disc list-inside text-stone-700"></ul>
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-stone-200 space-y-2.5">
+              <label for="followUpInput" class="block text-xs font-bold text-stone-700">針對本命盤繼續追問</label>
+              <div id="followUpHistory" class="space-y-2"></div>
+              <div class="flex gap-2">
+                <input id="followUpInput" type="text" maxlength="200" placeholder="輸入想進一步了解的細節..." class="flex-1 min-h-[44px] px-3 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]" />
+                <button id="btnFollowUp" type="button" class="shrink-0 min-h-[44px] px-4 rounded-xl bg-[#231F20] text-white text-sm font-bold hover:bg-stone-800">
+                  追問
+                </button>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-stone-400 text-center pt-1">
+              ※ 命理推演結合子平曆法與生成式 AI 解讀，僅供自我探索與生活規劃參考。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 手機分頁 3（桌面置於左欄下方）：個人免費 API Key 優先設定與本機歷史紀錄 -->
+      <section id="panel-settings" class="hidden lg:block lg:col-span-5 space-y-4">
+        <div id="apiKeyCard" class="bg-[#FFFDF8] rounded-2xl border border-amber-300/90 shadow-sm p-4 sm:p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-serif-tc font-bold text-base text-stone-900 flex items-center gap-2">
+              <span class="w-1.5 h-4 bg-[#C59B27] rounded-full"></span>
+              個人 Gemini API 金鑰（建議優先使用）
+            </h3>
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-[#B83B2A] underline hover:text-red-800">
+              免費申請 Key ↗
+            </a>
+          </div>
+          <p class="text-xs text-stone-600 leading-relaxed">
+            為減少系統內建共用額度消耗並避免尖峰排隊，<strong>建議優先貼上您自己的 Google AI Studio 免費 Key</strong>（僅暫存於目前分頁 <code class="bg-stone-100 px-1 rounded">sessionStorage</code>，關閉即清除）。
+          </p>
+          <div class="flex gap-2">
+            <input id="customApiKey" type="password" autocomplete="off" placeholder="貼上 AIzaSy... 開頭的個人金鑰" class="flex-1 min-h-[44px] px-3 rounded-xl border border-stone-300 bg-white focus:outline-none focus:border-[#B83B2A]" />
+            <button id="btnSaveKey" type="button" class="shrink-0 min-h-[44px] px-3.5 rounded-xl bg-stone-800 text-white text-xs font-bold hover:bg-stone-900">
+              套用金鑰
+            </button>
+          </div>
+          <div id="keyCurrentStatus" class="text-[11px] font-medium text-stone-500"></div>
+        </div>
+
+        <div class="bg-[#FFFDF8] rounded-2xl border border-stone-200 shadow-sm p-4 sm:p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-serif-tc font-bold text-base text-stone-900">本機儲存命盤（30日有效）</h3>
+            <button id="btnClearHistory" type="button" class="text-xs text-rose-700 hover:underline">清除全部紀錄</button>
+          </div>
+          <p class="text-[11px] text-amber-800 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200/80">
+            隱私提醒：資料僅存於目前瀏覽器，若使用公用電腦請勿儲存或於使用後清除。
+          </p>
+          <div id="historyList" class="space-y-2 text-xs text-stone-500">尚無儲存紀錄</div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 手機專屬底部導覽列 -->
+  <nav aria-label="手機版主導覽" class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF8]/95 backdrop-blur border-t border-stone-200 safe-bottom">
+    <div class="grid grid-cols-3 h-14">
+      <button type="button" data-tab="input" class="mobile-tab-btn flex flex-col items-center justify-center gap-0.5 text-[#B83B2A] font-bold">
+        <span class="text-base">✎</span>
+        <span class="text-[11px]">① 排盤問事</span>
+      </button>
+      <button type="button" data-tab="result" class="mobile-tab-btn flex flex-col items-center justify-center gap-0.5 text-stone-500 font-medium">
+        <span class="text-base">☯</span>
+        <span class="text-[11px]">② 命盤解析</span>
+      </button>
+      <button type="button" data-tab="settings" class="mobile-tab-btn flex flex-col items-center justify-center gap-0.5 text-stone-500 font-medium">
+        <span class="text-base">🔑</span>
+        <span class="text-[11px]">API 與紀錄</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    const LOCATIONS = [
+      { name: '台灣 · 台北市', lat: 25.0330, lng: 121.5654 },
+      { name: '台灣 · 新北市', lat: 25.0120, lng: 121.4657 },
+      { name: '台灣 · 基隆市', lat: 25.1276, lng: 121.7392 },
+      { name: '台灣 · 桃園市', lat: 24.9936, lng: 121.3010 },
+      { name: '台灣 · 新竹市', lat: 24.8138, lng: 120.9675 },
+      { name: '台灣 · 新竹縣', lat: 24.8387, lng: 121.0177 },
+      { name: '台灣 · 苗栗縣', lat: 24.5602, lng: 120.8214 },
+      { name: '台灣 · 台中市', lat: 24.1477, lng: 120.6736 },
+      { name: '台灣 · 彰化縣', lat: 24.0518, lng: 120.5161 },
+      { name: '台灣 · 南投縣', lat: 23.9609, lng: 120.9719 },
+      { name: '台灣 · 雲林縣', lat: 23.7092, lng: 120.4313 },
+      { name: '台灣 · 嘉義市', lat: 23.4801, lng: 120.4491 },
+      { name: '台灣 · 嘉義縣', lat: 23.4518, lng: 120.2555 },
+      { name: '台灣 · 台南市', lat: 22.9999, lng: 120.2269 },
+      { name: '台灣 · 高雄市', lat: 22.6273, lng: 120.3014 },
+      { name: '台灣 · 屏東縣', lat: 22.5519, lng: 120.5487 },
+      { name: '台灣 · 宜蘭縣', lat: 24.7021, lng: 121.7377 },
+      { name: '台灣 · 花蓮縣', lat: 23.9872, lng: 121.6016 },
+      { name: '台灣 · 台東縣', lat: 22.7972, lng: 121.0714 },
+      { name: '台灣 · 澎湖縣', lat: 23.5711, lng: 119.5793 },
+      { name: '台灣 · 金門縣', lat: 24.4493, lng: 118.3767 },
+      { name: '台灣 · 連江縣', lat: 26.1505, lng: 119.9499 },
+      { name: '香港 / 澳門', lat: 22.3193, lng: 114.1694 },
+      { name: '日本 · 東京', lat: 35.6762, lng: 139.6503 },
+      { name: '新加坡 / 吉隆坡', lat: 1.3521, lng: 103.8198 }
+    ];
+
+    const STORAGE_KEY = 'xuanshu_bazi_records_v1';
+    const STORAGE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+    const state = {
+      gender: 'male',
+      calendarType: 'solar',
+      topic: '愛情姻緣',
+      lunarMetaCache: {},
+      currentChart: null,
+      isChartReady: false,
+      hasServerKey: false,
+      currentReading: null,
+      deferredInstallPrompt: null
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function showToast(msg, type = 'info') {
+      const el = $('toast');
+      el.textContent = msg;
+      el.className = 'fixed top-16 left-1/2 -translate-x-1/2 z-50 max-w-[92vw] px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium';
+      if (type === 'error') {
+        el.classList.add('bg-rose-800', 'text-white');
+      } else if (type === 'success') {
+        el.classList.add('bg-emerald-800', 'text-white');
+      } else {
+        el.classList.add('bg-[#231F20]', 'text-amber-100');
+      }
+      el.classList.remove('hidden');
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => el.classList.add('hidden'), 3800);
+    }
+
+    // 更新 API Key 優先狀態顯示（鼓勵優先使用個人 API Key 減少內建消耗）
+    function refreshApiKeyStatusUI() {
+      const userKey = (sessionStorage.getItem('user_gemini_api_key') || '').trim();
+      const notice = $('apiSourceNotice');
+      const text = $('apiSourceText');
+      const step1Badge = $('guideStep1Badge');
+      const keyStatus = $('keyCurrentStatus');
+
+      if (userKey) {
+        notice.className = 'mb-4 p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 bg-emerald-50 border-emerald-200 text-emerald-900';
+        text.innerHTML = '<strong>✓ 優先使用：個人專屬 API Key</strong>（不佔用內建額度）';
+        step1Badge.textContent = '✓ 已設定個人 Key';
+        step1Badge.className = 'px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold';
+        keyStatus.textContent = '目前狀態：已暫存您的個人 API Key，所有 AI 解析將優先使用此金鑰。';
+        keyStatus.className = 'text-[11px] font-bold text-emerald-700';
+      } else if (state.hasServerKey) {
+        notice.className = 'mb-4 p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 bg-amber-50 border-amber-200 text-amber-900';
+        text.innerHTML = '<span>目前為<strong>系統內建共用額度</strong>，建議優先填個人 Key</span>';
+        step1Badge.textContent = '建議優先填寫';
+        step1Badge.className = 'px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-900 text-[10px] font-bold';
+        keyStatus.textContent = '目前狀態：尚未填入個人 Key，將使用系統內建共用額度（每日有共用上限）。';
+        keyStatus.className = 'text-[11px] font-medium text-amber-800';
+      } else {
+        notice.className = 'mb-4 p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 bg-rose-50 border-rose-200 text-rose-900';
+        text.innerHTML = '<span><strong>尚未設定 API Key</strong>（排八字免費，AI 需填 Key）</span>';
+        step1Badge.textContent = '尚未設定';
+        step1Badge.className = 'px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-bold';
+        keyStatus.textContent = '目前狀態：伺服器無內建金鑰，請先於上方貼上您的免費 API Key。';
+        keyStatus.className = 'text-[11px] font-bold text-rose-700';
+      }
+    }
+
+    // 控制「先排八字盤，再解鎖 AI 解析」狀態鎖
+    function setChartReadyState(ready, reasonText = '') {
+      state.isChartReady = ready;
+      const btnAnalyze = $('btnAnalyze');
+      const btnCardAnalyze = $('btnAnalyzeFromCard');
+      const hint = $('stepActionHint');
+      const step2Badge = $('guideStep2Badge');
+      const step3Badge = $('guideStep3Badge');
+
+      if (ready) {
+        btnAnalyze.disabled = false;
+        btnAnalyze.className = 'sm:col-span-7 min-h-[48px] px-4 rounded-xl bg-[#B83B2A] hover:bg-[#9E2F20] active:scale-[0.99] text-white text-sm font-bold shadow transition flex items-center justify-center gap-1.5';
+        btnAnalyze.innerHTML = '<span>✦ ② 啟動 AI 深度解析</span>';
+
+        if (btnCardAnalyze) {
+          btnCardAnalyze.disabled = false;
+          btnCardAnalyze.className = 'w-full sm:w-auto shrink-0 min-h-[42px] px-4 rounded-xl bg-[#B83B2A] hover:bg-[#9E2F20] text-white text-xs sm:text-sm font-bold shadow transition';
+          btnCardAnalyze.textContent = '✦ 啟動 AI 深度解析';
+        }
+
+        hint.textContent = '✓ 八字命盤已就緒！現在可點擊右側「② 啟動 AI 深度解析」進行問事剖析。';
+        hint.className = 'text-[11px] text-emerald-700 font-bold text-center';
+
+        step2Badge.textContent = '✓ 已排盤';
+        step2Badge.className = 'px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold';
+        step3Badge.textContent = '✓ 已解鎖';
+        step3Badge.className = 'px-1.5 py-0.5 rounded bg-[#B83B2A] text-white text-[10px] font-bold';
+      } else {
+        btnAnalyze.disabled = true;
+        btnAnalyze.className = 'sm:col-span-7 min-h-[48px] px-4 rounded-xl bg-stone-200 text-stone-400 border border-stone-300 cursor-not-allowed text-sm font-bold transition flex items-center justify-center gap-1.5';
+        btnAnalyze.innerHTML = '<span>🔒 ② 先排八字再解鎖 AI</span>';
+
+        if (btnCardAnalyze) {
+          btnCardAnalyze.disabled = true;
+          btnCardAnalyze.className = 'w-full sm:w-auto shrink-0 min-h-[42px] px-4 rounded-xl bg-stone-200 text-stone-400 cursor-not-allowed text-xs sm:text-sm font-bold';
+          btnCardAnalyze.textContent = '🔒 請先重新排八字盤';
+        }
+
+        hint.textContent = reasonText || '請先點擊左側暗灰色「① 排八字盤」確認四柱干支後，右側 AI 解析按鈕即會自動解鎖。';
+        hint.className = 'text-[11px] text-stone-500 text-center';
+
+        step2Badge.textContent = '待執行';
+        step2Badge.className = 'px-1.5 py-0.5 rounded bg-stone-700 text-white text-[10px] font-bold';
+        step3Badge.textContent = '🔒 未解鎖';
+        step3Badge.className = 'px-1.5 py-0.5 rounded bg-stone-200 text-stone-600 text-[10px] font-bold';
+      }
+    }
+
+    function switchMobileTab(tabName) {
+      const isDesktop = window.innerWidth >= 1024;
+      document.querySelectorAll('.mobile-tab-btn').forEach((btn) => {
+        const active = btn.dataset.tab === tabName;
+        btn.classList.toggle('text-[#B83B2A]', active);
+        btn.classList.toggle('font-bold', active);
+        btn.classList.toggle('text-stone-500', !active);
+        btn.classList.toggle('font-medium', !active);
+      });
+
+      if (isDesktop) {
+        $('panel-input').classList.remove('hidden');
+        $('panel-result').classList.remove('hidden');
+        $('panel-settings').classList.remove('hidden');
+        return;
+      }
+
+      $('panel-input').classList.toggle('hidden', tabName !== 'input');
+      $('panel-result').classList.toggle('hidden', tabName !== 'result');
+      $('panel-settings').classList.toggle('hidden', tabName !== 'settings');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function jumpToApiKeyInput() {
+      if (window.innerWidth < 1024) {
+        switchMobileTab('settings');
+      }
+      const card = $('apiKeyCard');
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('ring-2', 'ring-[#B83B2A]');
+      setTimeout(() => card.classList.remove('ring-2', 'ring-[#B83B2A]'), 1600);
+      $('customApiKey').focus();
+    }
+
+    function initSelectors() {
+      const currentYear = new Date().getFullYear();
+      const yearSelect = $('birthYear');
+      for (let y = currentYear; y >= 1920; y--) {
+        yearSelect.add(new Option(`${y} 年`, String(y)));
+      }
+      yearSelect.value = '1991';
+
+      const locSelect = $('birthLocation');
+      LOCATIONS.forEach((loc, idx) => {
+        locSelect.add(new Option(`${loc.name} (${loc.lng.toFixed(1)}°E)`, String(idx)));
+      });
+      locSelect.value = '11';
+
+      updateMonthAndDayOptions();
+    }
+
+    async function updateMonthAndDayOptions() {
+      const year = Number($('birthYear').value);
+      const monthSelect = $('birthMonth');
+      const daySelect = $('birthDay');
+      const prevMonth = Number(monthSelect.value) || 6;
+      const prevDay = Number(daySelect.value) || 15;
+
+      if (state.calendarType === 'solar') {
+        $('lunarLeapWrap').classList.add('hidden');
+        $('isLeapMonth').checked = false;
+
+        monthSelect.innerHTML = '';
+        for (let m = 1; m <= 12; m++) {
+          monthSelect.add(new Option(`${m} 月`, String(m)));
+        }
+        monthSelect.value = String(Math.min(prevMonth, 12));
+
+        const maxDay = new Date(year, Number(monthSelect.value), 0).getDate();
+        daySelect.innerHTML = '';
+        for (let d = 1; d <= maxDay; d++) {
+          daySelect.add(new Option(`${d} 日`, String(d)));
+        }
+        daySelect.value = String(Math.min(prevDay, maxDay));
+      } else {
+        let meta = state.lunarMetaCache[year];
+        if (!meta) {
+          try {
+            const resp = await fetch(`/api/lunar-meta?year=${year}`);
+            if (resp.ok) {
+              meta = await resp.json();
+              state.lunarMetaCache[year] = meta;
+            }
+          } catch (_) {}
+        }
+
+        monthSelect.innerHTML = '';
+        for (let m = 1; m <= 12; m++) {
+          monthSelect.add(new Option(`農曆 ${m} 月`, String(m)));
+        }
+        monthSelect.value = String(Math.min(prevMonth, 12));
+
+        if (meta && meta.leapMonth > 0) {
+          $('lunarLeapWrap').classList.remove('hidden');
+          $('lunarLeapLabel').textContent = `${year} 農曆年有「閏${meta.leapMonth}月」，若為閏月出生請勾選`;
+        } else {
+          $('lunarLeapWrap').classList.add('hidden');
+          $('isLeapMonth').checked = false;
+        }
+
+        const selectedM = Number(monthSelect.value);
+        const isLeap = $('isLeapMonth').checked;
+        let maxLunarDay = 30;
+        if (meta && Array.isArray(meta.months)) {
+          const found = meta.months.find((item) => item.month === selectedM && item.isLeap === isLeap);
+          if (found) maxLunarDay = found.days;
+        }
+
+        daySelect.innerHTML = '';
+        for (let d = 1; d <= maxLunarDay; d++) {
+          daySelect.add(new Option(`${d} 日`, String(d)));
+        }
+        daySelect.value = String(Math.min(prevDay, maxLunarDay));
+      }
+    }
+
+    function collectFormPayload() {
+      const locIdx = Number($('birthLocation').value) || 0;
+      return {
+        gender: state.gender,
+        calendarType: state.calendarType,
+        year: Number($('birthYear').value),
+        month: Number($('birthMonth').value),
+        day: Number($('birthDay').value),
+        isLeapMonth: $('isLeapMonth').checked,
+        unknownTime: $('unknownTime').checked,
+        hour: Number($('exactHour').value) || 0,
+        minute: Number($('exactMinute').value) || 0,
+        location: LOCATIONS[locIdx],
+        useTrueSolarTime: $('useTrueSolarTime').checked,
+        topic: state.topic,
+        question: $('userQuestion').value.trim()
+      };
+    }
+
+    function renderChart(chart) {
+      state.currentChart = chart;
+      $('emptyState').classList.add('hidden');
+      $('chartContainer').classList.remove('hidden');
+
+      $('resDateHeader').textContent = `${chart.solarDateStr} ｜ ${chart.lunarDateStr}`;
+      const solarNote = chart.trueSolarInfo
+        ? `真太陽時 ${chart.trueSolarInfo.adjustedTime}（經度與均時差校正 ${chart.trueSolarInfo.offsetMinutes > 0 ? '+' : ''}${chart.trueSolarInfo.offsetMinutes} 分）`
+        : chart.unknownTime ? '時辰不詳（三柱推命模式）' : '使用標準鐘錶時間';
+      $('resMetaSub').textContent = `生肖：${chart.zodiac} ｜ ${solarNote}`;
+
+      const pillarList = [chart.pillars.year, chart.pillars.month, chart.pillars.day, chart.pillars.time];
+      const grid = $('pillarsGrid');
+      grid.innerHTML = '';
+      pillarList.forEach((p) => {
+        const card = document.createElement('div');
+        card.className = 'rounded-xl border border-stone-200 bg-white p-2.5 flex flex-col items-center shadow-2xs';
+        const ganClass = p.ganWuxing ? `wx-${p.ganWuxing}` : 'bg-stone-100 text-stone-400 border-stone-200';
+        const zhiClass = p.zhiWuxing ? `wx-${p.zhiWuxing}` : 'bg-stone-100 text-stone-400 border-stone-200';
+        const hideText = Array.isArray(p.hideGan) && p.hideGan.length ? `藏：${p.hideGan.join('')}` : '—';
+
+        card.innerHTML = `
+          <span class="text-[11px] font-bold text-stone-500 mb-1">${escapeHtml(p.label)}</span>
+          <span class="text-[11px] text-stone-600 mb-1.5 truncate max-w-full">${escapeHtml(p.shiShenGan)}</span>
+          <div class="w-11 h-11 rounded-xl border flex items-center justify-center font-serif-tc font-black text-xl mb-1.5 ${ganClass}">
+            ${escapeHtml(p.gan)}
+          </div>
+          <div class="w-11 h-11 rounded-xl border flex items-center justify-center font-serif-tc font-black text-xl mb-1.5 ${zhiClass}">
+            ${escapeHtml(p.zhi)}
+          </div>
+          <span class="text-[10px] text-stone-500">${escapeHtml(hideText)}</span>
+          <span class="text-[10px] text-amber-800/80 mt-0.5">${escapeHtml(p.naYin)}</span>
+        `;
+        grid.appendChild(card);
+      });
+
+      $('dayMasterBadge').textContent = `日主：${chart.dayMaster.gan}${chart.dayMaster.element}`;
+      const elements = ['木', '火', '土', '金', '水'];
+      const bar = $('wuxingBar');
+      const legend = $('wuxingLegend');
+      bar.innerHTML = '';
+      legend.innerHTML = '';
+
+      elements.forEach((el) => {
+        const pct = chart.fiveElements[el] || 0;
+        const seg = document.createElement('div');
+        seg.className = `bar-${el} h-full transition-all duration-500`;
+        seg.style.width = `${pct}%`;
+        bar.appendChild(seg);
+
+        const item = document.createElement('div');
+        item.className = `rounded-lg py-1 border wx-${el} font-bold`;
+        item.textContent = `${el} ${pct}%`;
+        legend.appendChild(item);
+      });
+
+      $('jieQiInfo').textContent = `節氣交接參考：前節氣 ${chart.jieQi.prev} ｜ 後節氣 ${chart.jieQi.next}`;
+
+      const daYunRow = $('daYunRow');
+      daYunRow.innerHTML = '';
+      chart.daYun.forEach((dy) => {
+        const box = document.createElement('div');
+        box.className = 'shrink-0 px-3 py-2 rounded-xl border border-stone-200 bg-white text-center min-w-[74px]';
+        box.innerHTML = `
+          <div class="text-[10px] text-stone-400">${dy.startYear}年</div>
+          <div class="font-serif-tc font-bold text-sm text-stone-900 my-0.5">${escapeHtml(dy.ganZhi)}</div>
+          <div class="text-[10px] text-[#B83B2A] font-medium">${dy.startAge}歲起</div>
+        `;
+        daYunRow.appendChild(box);
+      });
+
+      $('inCardTopicName').textContent = state.topic;
+      setChartReadyState(true);
+    }
+
+    function renderReading(reading, topic, usedSource = 'server') {
+      state.currentReading = reading;
+      $('aiReadingCard').classList.remove('hidden');
+      $('aiTopicTag').textContent = `問事主題：${topic}`;
+
+      const sourceBadge = $('aiKeySourceTag');
+      if (usedSource === 'user') {
+        sourceBadge.textContent = '✓ 使用個人 API Key（未耗內建額度）';
+        sourceBadge.className = 'inline-block text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200';
+      } else {
+        sourceBadge.textContent = '使用內建共用 API 額度';
+        sourceBadge.className = 'inline-block text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200';
+      }
+
+      $('aiHeadline').textContent = reading.headline;
+      $('tagStrength').textContent = `格局判定：${reading.dayMasterStrength}`;
+      $('tagFavorable').textContent = `喜用五行：${(reading.favorableElements || []).join('、')}`;
+      $('tagUnfavorable').textContent = `留意五行：${(reading.unfavorableElements || []).join('、')}`;
+      $('aiCorePersonality').textContent = reading.corePersonality;
+      $('aiTopicAnalysis').textContent = reading.topicAnalysis;
+      $('aiAnnualOutlook').textContent = reading.annualOutlook;
+
+      const list = $('aiAdviceList');
+      list.innerHTML = '';
+      (reading.actionableAdvice || []).forEach((tip) => {
+        const li = document.createElement('li');
+        li.textContent = tip;
+        list.appendChild(li);
+      });
+
+      $('followUpHistory').innerHTML = '';
+    }
+
+    function getAuthHeaders() {
+      const headers = { 'Content-Type': 'application/json' };
+      const customKey = sessionStorage.getItem('user_gemini_api_key');
+      if (customKey) headers['x-user-api-key'] = customKey;
+      return headers;
+    }
+
+    // 步驟 ①：暗灰色按鈕排八字盤（必先執行）
+    async function handleChartOnly() {
+      const btn = $('btnChartOnly');
+      btn.disabled = true;
+      btn.innerHTML = '<span>排盤中...</span>';
+      try {
+        const payload = collectFormPayload();
+        const resp = await fetch('/api/bazi-chart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || '排盤失敗');
+
+        renderChart(data.chart);
+        $('aiReadingCard').classList.add('hidden');
+        switchMobileTab('result');
+        showToast('✓ 已排出八字命盤，AI 深度解析按鈕已解鎖！', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>① 排八字盤</span>';
+      }
+    }
+
+    // 步驟 ②：執行 AI 解析（僅在已排出八字盤後允許觸發）
+    async function runAiAnalysis() {
+      if (!state.isChartReady || !state.currentChart) {
+        showToast('請先點擊暗灰色「① 排八字盤」按鈕排出命盤！', 'error');
+        return;
+      }
+
+      const btn = $('btnAnalyze');
+      const cardBtn = $('btnAnalyzeFromCard');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ AI 深度推演中...</span>';
+      if (cardBtn) {
+        cardBtn.disabled = true;
+        cardBtn.textContent = '⏳ AI 深度推演中...';
+      }
+
+      try {
+        const payload = collectFormPayload();
+        const resp = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+
+        if (data.chart) {
+          renderChart(data.chart);
+          switchMobileTab('result');
+        }
+        if (!resp.ok) {
+          throw new Error(data.error || 'AI 解析失敗');
+        }
+
+        renderReading(data.reading, payload.topic, data.usedSource);
+        $('aiReadingCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        showToast('✦ AI 命理深度解析完成！', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        setChartReadyState(true);
+      }
+    }
+
+    async function handleAnalyzeSubmit(e) {
+      e.preventDefault();
+      await runAiAnalysis();
+    }
+
+    async function handleFollowUp() {
+      const input = $('followUpInput');
+      const q = input.value.trim();
+      if (!q || !state.currentChart) return;
+
+      const btn = $('btnFollowUp');
+      btn.disabled = true;
+      btn.textContent = '推演中...';
+
+      const c = state.currentChart;
+      const summary = `四柱：${c.pillars.year.gan}${c.pillars.year.zhi}年、${c.pillars.month.gan}${c.pillars.month.zhi}月、${c.pillars.day.gan}${c.pillars.day.zhi}日、${c.unknownTime ? '時辰不詳' : c.pillars.time.gan + c.pillars.time.zhi + '時'}；日主${c.dayMaster.gan}${c.dayMaster.element}`;
+
+      try {
+        const resp = await fetch('/api/followup', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            chartSummary: summary,
+            topic: state.topic,
+            followUpQuestion: q
+          })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || '追問失敗');
+
+        const box = document.createElement('div');
+        box.className = 'p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs space-y-1';
+        box.innerHTML = `
+          <div class="font-bold text-[#B83B2A]">問：${escapeHtml(q)}</div>
+          <div class="text-stone-700 leading-relaxed">${escapeHtml(data.answer)}</div>
+        `;
+        $('followUpHistory').appendChild(box);
+        input.value = '';
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '追問';
+      }
+    }
+
+    function loadHistory() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const now = Date.now();
+        const valid = Array.isArray(raw)
+          ? raw.filter((item) => item && item.savedAt && now - item.savedAt < STORAGE_TTL_MS)
+          : [];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(valid));
+        renderHistoryList(valid);
+        return valid;
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function renderHistoryList(list) {
+      const container = $('historyList');
+      if (!list.length) {
+        container.textContent = '尚無儲存紀錄';
+        return;
+      }
+      container.innerHTML = '';
+      list.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 p-2.5 rounded-xl bg-stone-50 border border-stone-200';
+        const info = document.createElement('div');
+        info.innerHTML = `
+          <div class="font-bold text-stone-800">${escapeHtml(item.chart.solarDateStr)}（${escapeHtml(item.topic)}）</div>
+          <div class="text-[11px] text-stone-500">日主 ${escapeHtml(item.chart.dayMaster.gan)}${escapeHtml(item.chart.dayMaster.element)}</div>
+        `;
+        const loadBtn = document.createElement('button');
+        loadBtn.type = 'button';
+        loadBtn.className = 'px-2.5 py-1.5 rounded-lg bg-white border border-stone-300 text-stone-700 font-bold hover:bg-stone-100';
+        loadBtn.textContent = '載入';
+        loadBtn.addEventListener('click', () => {
+          renderChart(item.chart);
+          if (item.reading) {
+            renderReading(item.reading, item.topic, 'saved');
+          } else {
+            $('aiReadingCard').classList.add('hidden');
+          }
+          switchMobileTab('result');
+          showToast('已載入本機儲存命盤');
+        });
+        row.appendChild(info);
+        row.appendChild(loadBtn);
+        container.appendChild(row);
+      });
+    }
+
+    // 生辰條件異動時，重置排盤就緒狀態，確保使用者重新排盤後再跑 AI
+    function invalidateChartOnBirthChange() {
+      if (state.isChartReady) {
+        setChartReadyState(false, '⚠ 生辰條件已修改，請重新點擊暗灰色「① 排八字盤」更新命盤。');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      initSelectors();
+      loadHistory();
+      setChartReadyState(false);
+
+      // 檢查使用者是否已於本次瀏覽器會話中隱藏導引
+      if (sessionStorage.getItem('hide_onboarding_guide') === '1') {
+        $('onboardingGuide').classList.add('hidden');
+      }
+
+      $('btnCloseGuide').addEventListener('click', () => {
+        $('onboardingGuide').classList.add('hidden');
+        sessionStorage.setItem('hide_onboarding_guide', '1');
+      });
+
+      $('btnToggleGuide').addEventListener('click', () => {
+        const isHidden = $('onboardingGuide').classList.toggle('hidden');
+        if (!isHidden) {
+          sessionStorage.removeItem('hide_onboarding_guide');
+          $('onboardingGuide').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+
+      $('btnQuickFocusKey').addEventListener('click', jumpToApiKeyInput);
+      $('btnBannerToKey').addEventListener('click', jumpToApiKeyInput);
+
+      try {
+        const statusResp = await fetch('/api/status');
+        const status = await statusResp.json();
+        state.hasServerKey = Boolean(status.hasServerKey);
+      } catch (_) {
+        state.hasServerKey = false;
+      }
+      refreshApiKeyStatusUI();
+
+      document.querySelectorAll('.gender-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.gender = btn.dataset.gender;
+          document.querySelectorAll('.gender-btn').forEach((b) => {
+            const active = b.dataset.gender === state.gender;
+            b.className = `gender-btn min-h-[38px] rounded-lg text-sm transition ${active ? 'font-bold bg-[#231F20] text-white' : 'font-medium text-stone-600'}`;
+          });
+          invalidateChartOnBirthChange();
+        });
+      });
+
+      document.querySelectorAll('.cal-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.calendarType = btn.dataset.cal;
+          document.querySelectorAll('.cal-btn').forEach((b) => {
+            const active = b.dataset.cal === state.calendarType;
+            b.className = `cal-btn min-h-[38px] rounded-lg text-sm transition ${active ? 'font-bold bg-[#B83B2A] text-white' : 'font-medium text-stone-600'}`;
+          });
+          updateMonthAndDayOptions();
+          invalidateChartOnBirthChange();
+        });
+      });
+
+      document.querySelectorAll('.topic-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.topic = btn.dataset.topic;
+          $('inCardTopicName').textContent = state.topic;
+          document.querySelectorAll('.topic-btn').forEach((b) => {
+            const active = b.dataset.topic === state.topic;
+            b.className = `topic-btn min-h-[44px] px-2 py-2 rounded-xl border text-xs sm:text-sm transition ${active ? 'border-[#B83B2A] bg-[#FCECE9] text-[#B83B2A] font-bold' : 'border-stone-200 bg-white text-stone-700 font-medium'}`;
+          });
+        });
+      });
+
+      $('birthYear').addEventListener('change', () => {
+        updateMonthAndDayOptions();
+        invalidateChartOnBirthChange();
+      });
+      $('birthMonth').addEventListener('change', () => {
+        updateMonthAndDayOptions();
+        invalidateChartOnBirthChange();
+      });
+      $('birthDay').addEventListener('change', invalidateChartOnBirthChange);
+      $('isLeapMonth').addEventListener('change', () => {
+        updateMonthAndDayOptions();
+        invalidateChartOnBirthChange();
+      });
+
+      $('unknownTime').addEventListener('change', (e) => {
+        const disabled = e.target.checked;
+        $('timeInputGroup').classList.toggle('opacity-40', disabled);
+        $('birthShichen').disabled = disabled;
+        $('exactHour').disabled = disabled;
+        $('exactMinute').disabled = disabled;
+        invalidateChartOnBirthChange();
+      });
+
+      $('birthShichen').addEventListener('change', (e) => {
+        $('exactHour').value = e.target.value;
+        $('exactMinute').value = '0';
+        invalidateChartOnBirthChange();
+      });
+      $('exactHour').addEventListener('change', invalidateChartOnBirthChange);
+      $('exactMinute').addEventListener('change', invalidateChartOnBirthChange);
+      $('birthLocation').addEventListener('change', invalidateChartOnBirthChange);
+      $('useTrueSolarTime').addEventListener('change', invalidateChartOnBirthChange);
+
+      $('userQuestion').addEventListener('input', (e) => {
+        $('charCount').textContent = `${e.target.value.length} / 200`;
+      });
+
+      $('btnFillDemo').addEventListener('click', () => {
+        state.calendarType = 'lunar';
+        document.querySelector('[data-cal="lunar"]').click();
+        $('birthYear').value = '1991';
+        updateMonthAndDayOptions().then(() => {
+          $('birthMonth').value = '4';
+          $('birthDay').value = '25';
+        });
+        $('unknownTime').checked = false;
+        $('unknownTime').dispatchEvent(new Event('change'));
+        $('birthShichen').value = '6';
+        $('exactHour').value = '6';
+        $('exactMinute').value = '0';
+        $('birthLocation').value = '11';
+        $('userQuestion').value = '想了解近期在專業技術領域發展與轉職時機的建議。';
+        $('charCount').textContent = `${$('userQuestion').value.length} / 200`;
+        invalidateChartOnBirthChange();
+        showToast('已填入範例生辰，請點選暗灰色「① 排八字盤」');
+      });
+
+      $('btnChartOnly').addEventListener('click', handleChartOnly);
+      $('baziForm').addEventListener('submit', handleAnalyzeSubmit);
+      $('btnAnalyzeFromCard').addEventListener('click', runAiAnalysis);
+      $('btnFollowUp').addEventListener('click', handleFollowUp);
+
+      $('btnSaveKey').addEventListener('click', () => {
+        const val = $('customApiKey').value.trim();
+        if (!val) {
+          sessionStorage.removeItem('user_gemini_api_key');
+          refreshApiKeyStatusUI();
+          showToast('已清除個人 API Key，改回系統內建額度');
+          return;
+        }
+        sessionStorage.setItem('user_gemini_api_key', val);
+        $('customApiKey').value = '';
+        refreshApiKeyStatusUI();
+        showToast('✓ 已套用您的個人 API Key，將優先使用您的額度！', 'success');
+      });
+
+      $('btnSaveHistory').addEventListener('click', () => {
+        if (!state.currentChart) return;
+        const list = loadHistory();
+        list.unshift({
+          savedAt: Date.now(),
+          topic: state.topic,
+          chart: state.currentChart,
+          reading: state.currentReading
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, 10)));
+        renderHistoryList(list.slice(0, 10));
+        showToast('已儲存至本機瀏覽器紀錄', 'success');
+      });
+
+      $('btnClearHistory').addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY);
+        renderHistoryList([]);
+        showToast('已清除全部本機命盤紀錄');
+      });
+
+      $('btnCopyReading').addEventListener('click', async () => {
+        if (!state.currentReading || !state.currentChart) return;
+        const r = state.currentReading;
+        const text = `【玄樞八字解析】${state.currentChart.solarDateStr}
+核心格局：${r.headline}
+喜用五行：${r.favorableElements.join('、')}
+
+${r.topicAnalysis}
+
+流年趨勢：${r.annualOutlook}`;
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast('已複製解析內容至剪貼簿', 'success');
+        } catch (_) {
+          showToast('複製失敗，請手動選取文字', 'error');
+        }
+      });
+
+      document.querySelectorAll('.mobile-tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => switchMobileTab(btn.dataset.tab));
+      });
+      window.addEventListener('resize', () => {
+        if (window.innerWidth >= 1024) switchMobileTab('input');
+      });
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        state.deferredInstallPrompt = e;
+        $('btnInstallPwa').classList.remove('hidden');
+      });
+
+      $('btnInstallPwa').addEventListener('click', async () => {
+        if (!state.deferredInstallPrompt) return;
+        state.deferredInstallPrompt.prompt();
+        await state.deferredInstallPrompt.userChoice;
+        state.deferredInstallPrompt = null;
+        $('btnInstallPwa').classList.add('hidden');
+      });
+    });
+  </script>
+</body>
+</html>
